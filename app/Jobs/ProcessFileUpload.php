@@ -4,13 +4,14 @@ namespace App\Jobs;
 
 use App\Models\FileUpload;
 use App\Models\Product;
+use App\Events\UploadStatusUpdated;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use DB;
 
 class ProcessFileUpload implements ShouldQueue
 {
-    use Queueable;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $fileUploadId;
     protected $fileRowData;
@@ -45,7 +46,7 @@ class ProcessFileUpload implements ShouldQueue
         }
 
         $updateColumns = Product::FILE_COLUMNS;
-// dd($this->fileRowData, $updateColumns);
+
         DB::table('products')->upsert($this->fileRowData, ['unique_key'], $updateColumns);
 
         $fileupload = FileUpload::whereId($this->fileUploadId)->update([
@@ -53,6 +54,8 @@ class ProcessFileUpload implements ShouldQueue
             'processed_rows' => $processed,
             'message' => 'Processed successfully',
         ]);
+
+        event(new UpdateFileUploadStatus($fileupload));
 
         return;
     }

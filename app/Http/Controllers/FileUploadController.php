@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\UpdateFileUploadStatus;
 use App\Helpers\FileValidation;
 use App\Http\Resources\FleUploadResource;
 use App\Models\FileUpload;
 use App\Models\Product;
+use App\Models\User;
 use App\Jobs\ProcessFileUpload;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
-
 use DB;
 
 class FileUploadController extends Controller
@@ -27,6 +29,9 @@ class FileUploadController extends Controller
         // $uplpads = FileUpload::orderBy('id', 'desc')->get();
         // dd('FileUpload', $uplpads);
 
+        $user = User::find(1);
+        Auth::loginUsingId($user->id);
+
         $now = now()->toDateTimeString();
 
         $uploads = FileUpload::orderBy('created_at', 'desc')
@@ -37,7 +42,8 @@ class FileUploadController extends Controller
             $createdAt = $upload->created_at->format('Y-m-d H:i:s');
 
             // $timeDiffeence = now()->diffInMinutes($createdAt);
-            $upload->time_difference = ceil($upload->created_at->diffInMinutes(now()));
+            // $upload->time_difference = ceil($upload->created_at->diffInMinutes(now()));
+            $upload->time_difference = $upload->created_at->diffForHumans();
         }
         
         $uploads = FleUploadResource::collection($uploads);
@@ -115,7 +121,7 @@ class FileUploadController extends Controller
                 'status' => 'processing',
                 'message' => "File uploaded (and queued) successfully.",
             ]);
-// dd('upload', $upload->id, $upload);
+
             // to trigger job to perform file upload
             ProcessFileUpload::dispatch($upload->id, $insertedRow);
         } else {
@@ -126,6 +132,8 @@ class FileUploadController extends Controller
                 'processed_rows' => $existing->processed_rows,
                 'message' => $storeMessage,
             ]);
+
+            event(new UpdateFileUploadStatus($upload));
         }
 
         return redirect()->route('file.upload.index')->withErrors(['error', $storeMessage]);

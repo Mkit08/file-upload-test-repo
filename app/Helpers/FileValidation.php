@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Events\UpdateFileUploadStatus;
 use App\Models\FileUpload;
 use Illuminate\Support\Str;
 use Illuminate\Support\LazyCollection;
@@ -67,6 +68,8 @@ class FileValidation
             $this->setValidationMessage("File not found at path: {$this->fileUpload->file_path}");
             $this->setValidatedFileRow($fileRow);
 
+            event(new UpdateFileUploadStatus($this->fileUpload));
+            
             $returnData = $this->returnParams();
 
             return $returnData;
@@ -95,6 +98,8 @@ class FileValidation
                 $this->setValidationMessage('Unable to open temporary cleaned CSV file');
                 $this->setValidatedFileRow($fileRow);
 
+                event(new UpdateFileUploadStatus($this->fileUpload));
+                
                 $returnData = $this->returnParams();
 
                 return $returnData;
@@ -111,6 +116,8 @@ class FileValidation
                 $this->setValidationMessage('CSV header could not be read or file is empty.');
                 $this->setValidatedFileRow($fileRow);
 
+                event(new UpdateFileUploadStatus($this->fileUpload));
+                
                 $returnData = $this->returnParams();
 
                 return $returnData;
@@ -139,6 +146,8 @@ class FileValidation
                 $this->setStatus(500);
                 $this->setValidationMessage('UNIQUE_KEY column not found in CSV header. Please include a column named UNIQUE_KEY.');
                 $this->setValidatedFileRow($fileRow);
+
+                event(new UpdateFileUploadStatus($this->fileUpload));
 
                 $returnData = $this->returnParams();
 
@@ -232,6 +241,7 @@ class FileValidation
                 $this->setValidationMessage("Missing UNIQUE_KEY column value in row $failedRowList");
                 $this->setValidatedFileRow($fileRow);
 
+                event(new UpdateFileUploadStatus($this->fileUpload));
                 $returnData = $this->returnParams();
 
                 return $returnData;
@@ -241,6 +251,7 @@ class FileValidation
             $this->setValidationMessage("");
             $this->setValidatedFileRow($fileRow);
 
+            event(new UpdateFileUploadStatus($this->fileUpload));
             $returnData = $this->returnParams();
 
             return $returnData;
